@@ -72,11 +72,6 @@ function resendEmail() {
                     {{ isResending || form.processing ? 'Mengirim...' : 'Kirim Ulang Email Verifikasi' }}
                 </button>
 
-                <Link :href="route('dashboard')"
-                      class="w-full px-4 py-3 text-sm font-medium text-center text-gray-700 transition bg-gray-100 rounded-lg hover:bg-gray-200">
-                    Kembali ke Dashboard
-                </Link>
-
                 <Link :href="route('logout')" method="post" as="button"
                       class="w-full px-4 py-3 text-sm font-medium text-center text-red-600 transition bg-red-50 rounded-lg hover:bg-red-100">
                     Logout

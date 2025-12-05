@@ -24,9 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Replace default CSRF middleware with custom one
         $middleware->validateCsrfTokens(except: [
-            '/login',
-            '/register',
-            '/logout',
+            '/api/*', // Exclude all API routes from CSRF (using Bearer token instead)
             '/profile',
             '/cart',
             '/admin/orders/*/status',

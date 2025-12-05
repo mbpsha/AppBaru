@@ -8,13 +8,15 @@ use App\Http\Controllers\Auth\AuthController;
 // AUTH ROUTES (Sanctum Token Authentication)
 // ============================================
 
-// Guest Routes
-Route::post('/register', [AuthController::class, 'register'])->name('api.register');
-Route::post('/login', [AuthController::class, 'login'])->name('api.login');
+// Guest Routes - Wrapped with session middleware for session creation
+Route::middleware(['web'])->group(function () {
+    Route::post('/register', [AuthController::class, 'apiRegister'])->name('api.register');
+    Route::post('/login', [AuthController::class, 'apiLogin'])->name('api.login');
+});
 
-// Protected Routes (Sanctum Token Required)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
+// Protected Routes (Sanctum Token Required) - Also need web middleware for session
+Route::middleware(['web', 'auth:sanctum'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'apiLogout'])->name('api.logout');
     Route::get('/user', fn() => response()->json(request()->user()))->name('api.user');
 
     // Profile endpoints for API/Postman (returns JSON)

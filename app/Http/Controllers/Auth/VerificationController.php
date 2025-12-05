@@ -13,8 +13,13 @@ class VerificationController extends Controller
     /**
      * Show the email verification notice page
      */
-    public function notice()
+    public function notice(Request $request)
     {
+        // If already verified, redirect to dashboard
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->route('dashboard')->with('message', 'Email Anda sudah terverifikasi.');
+        }
+
         return Inertia::render('Auth/VerifyEmail');
     }
 

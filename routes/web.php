@@ -25,15 +25,13 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 // Root -> dashboard publik
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// Auth (guest) - Web Form Pages + POST handlers
+// Auth (guest) - Web Form Pages ONLY (POST handled by API)
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 });
 
-// Auth (authenticated) - Logout
+// Auth (authenticated) - Logout (Web only for session invalidation)
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

@@ -18,12 +18,18 @@ const togglePassword = () => {
     showPassword.value = !showPassword.value
 }
 
-async function submit() {
+async function submit(e) {
+    // Prevent any default form submission
+    if (e) e.preventDefault()
+
     form.processing = true
     form.errors = {}
 
     try {
-        const response = await axios.post('/login', {
+        // First, get CSRF cookie to ensure session is initialized
+        await axios.get('/sanctum/csrf-cookie')
+
+        const response = await axios.post('/api/login', {
             login: form.login,
             password: form.password
         }, {
@@ -33,13 +39,16 @@ async function submit() {
             }
         })
 
-        // Token received, redirect based on role using Inertia router
+        // Store token in localStorage
+        localStorage.setItem('auth_token', response.data.token)
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+
+        // Set default axios header for future requests
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
+
+        // Force reload to ensure session is properly set
         const redirectUrl = response.data.redirect || (response.data.user.role === 'admin' ? '/admin/dashboard' : '/dashboard')
-        router.visit(redirectUrl, {
-            replace: true,
-            preserveState: false,
-            preserveScroll: false
-        })
+        window.location.href = redirectUrl
     } catch (error) {
         form.processing = false
         if (error.response?.data?.errors) {

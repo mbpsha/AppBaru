@@ -8,16 +8,31 @@ const isActive = (routeName) => {
 
 async function logout() {
     try {
-        await axios.post('/logout', {}, {
+        // Clear tokens FIRST
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user')
+        delete axios.defaults.headers.common['Authorization']
+
+        // Get CSRF cookie
+        await axios.get('/sanctum/csrf-cookie')
+
+        // Call logout API
+        await axios.post('/api/logout', {}, {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             }
         })
-        router.visit('/dashboard', { replace: true, preserveState: false })
+
+        // Wait for server to process
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // Force full page reload to dashboard (public mode)
+        window.location.replace('/dashboard')
     } catch (error) {
         console.error('Logout failed:', error)
-        router.visit('/dashboard', { replace: true, preserveState: false })
+        window.location.replace('/dashboard')
+        window.location.reload(true)
     }
 }
 </script>

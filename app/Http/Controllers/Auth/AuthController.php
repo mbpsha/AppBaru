@@ -82,7 +82,7 @@ class AuthController extends Controller
             'nama' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
+            'password' => 'required|string|min:8|confirmed',
             'role' => 'nullable|in:admin,user'
         ]);
 
@@ -140,6 +140,111 @@ class AuthController extends Controller
 
         // Web: Redirect to dashboard
         return redirect()->route('dashboard');
+    }
+
+    // ============================================
+    // API METHODS (Full Token-Based Authentication)
+    // ============================================
+
+    public function apiLogin(Request $request)
+    {
+        $request->validate([
+            'login' => 'required|string',
+            'password' => 'required'
+        ]);
+
+        $loginField = $request->login;
+
+        // Check if input is email or username
+        $user = User::where('email', $loginField)
+                   ->orWhere('username', $loginField)
+                   ->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'The provided credentials are incorrect.',
+                'errors' => [
+                    'login' => ['The provided credentials are incorrect.']
+                ]
+            ], 401);
+        }
+
+        // Login user to create session with remember token
+        Auth::login($user, true);
+
+        // Regenerate session to prevent session fixation
+        $request->session()->regenerate();
+
+        // Generate Sanctum token
+        $token = $user->createToken('auth-token')->plainTextToken;
+        $verified = $user->hasVerifiedEmail();
+
+        return response()->json([
+            'message' => 'Login successful!',
+            'user' => $user,
+            'token' => $token,
+            'email_verified' => $verified,
+            'redirect' => $verified ? ($user->role === 'admin' ? '/admin/dashboard' : '/dashboard') : '/email/verify'
+        ], 200);
+    }
+
+    public function apiRegister(Request $request)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'nullable|in:admin,user'
+        ]);
+
+        $user = User::create([
+            'nama' => $request->nama,
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role ?? 'user'
+        ]);
+
+        // Login user to create session with remember token
+        Auth::login($user, true);
+
+        // Regenerate session to prevent session fixation
+        $request->session()->regenerate();
+
+        // Send email verification notification
+        $user->sendEmailVerificationNotification();
+
+        // Generate Sanctum token
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Registrasi berhasil! Silakan cek email Anda untuk verifikasi akun.',
+            'user' => $user,
+            'token' => $token,
+            'redirect' => '/email/verify'
+        ], 201);
+    }
+
+    public function apiLogout(Request $request)
+    {
+        $user = $request->user();
+
+        // Revoke all Sanctum tokens
+        if ($user) {
+            $user->tokens()->delete();
+        }
+
+        // Logout from session (important!)
+        Auth::guard('web')->logout();
+
+        // Invalidate session
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'message' => 'Logout successful!'
+        ], 200);
     }
 
     public function blog()
