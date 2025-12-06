@@ -84,7 +84,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Protected - Require email verification (profil & checkout/order) - USER ONLY
-Route::middleware(['auth', 'verified', 'user.only'])->group(function () {
+Route::middleware(['auth', 'user.only'])->group(function () {
     // Profil - WAJIB VERIFIKASI EMAIL
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
