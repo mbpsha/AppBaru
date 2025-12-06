@@ -41,17 +41,22 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = false);
 
       if (result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Login successful! Welcome ${result['user']['name']}',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Navigate to home or dashboard
+        // Navigate to home first
         Navigator.pushReplacementNamed(context, '/');
+
+        // Show success message after navigation
+        Future.delayed(Duration(milliseconds: 300), () {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Login successful! Welcome ${result['user']['nama'] ?? result['user']['name']}',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        });
       } else {
         _showError(result['message']);
         // Reset captcha on error
