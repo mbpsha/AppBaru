@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 
-class Header extends StatefulWidget {
+class Header extends StatefulWidget implements PreferredSizeWidget {
+  // Tambahkan implements PreferredSizeWidget untuk memudahkan penggunaan di AppBar di main.dart
   @override
   _HeaderState createState() => _HeaderState();
+
+  @override
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + 10); // Tinggi Header
 }
 
 class _HeaderState extends State<Header> {
@@ -31,7 +35,6 @@ class _HeaderState extends State<Header> {
           });
         }
       } catch (e) {
-        // Token invalid or expired
         if (mounted) {
           setState(() => _isLoggedIn = false);
         }
@@ -63,49 +66,48 @@ class _HeaderState extends State<Header> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        // buat kiri nol supaya logo benar-benar di pojok kiri (SafeArea masih melindungi)
-        padding: EdgeInsets.only(left: 0, right: 22, top: 12, bottom: 12),
-        child: Row(
-          children: [
-            // LOGO di pojok kiri atas (pakai file assets/images/logo-ngundur.png)
-            Container(
-              margin: EdgeInsets.only(left: 4, right: 12),
-              child: Image.asset(
-                'assets/images/logo-ngundur.png',
-                height: 40,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  // log ke console supaya keliatan kenapa gagal (case-sensitive path di web)
-                  debugPrint(
-                    'ERROR loading asset: assets/images/logo-ngundur.png',
-                  );
-                  debugPrint(error.toString());
-                  if (stackTrace != null) debugPrint(stackTrace.toString());
-                  // tampilkan info lebih jelas di UI
-                  return Container(
-                    height: 40,
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.redAccent),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'logo missing\nassets/images/logo-ngundur.png',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 10, color: Colors.red),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+    // Tentukan lebar layar untuk responsif
+    final isMobile = MediaQuery.of(context).size.width < 800;
 
-            // nav tengah: gunakan Expanded + Center agar nav berada di tengah header
+    return Container(
+      // Padding diatur ulang agar konsisten
+      padding: EdgeInsets.only(left: 0, right: 22, top: 12, bottom: 12),
+      child: Row(
+        children: [
+          // 1. LOGO
+          Container(
+            margin: EdgeInsets.only(left: isMobile ? 12 : 4, right: 12),
+            child: Image.asset(
+              'assets/images/logo-ngundur.png',
+              height: 40,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                // ... (errorBuilder tetap sama) ...
+                debugPrint('ERROR loading asset: assets/images/logo-ngundur.png');
+                return Container(
+                  height: 40,
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.redAccent),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'logo missing\nassets/images/logo-ngundur.png',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 10, color: Colors.red),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // 2. Navigasi Tengah (Hanya muncul di layar BESAR)
+          if (!isMobile)
             Expanded(
               child: Center(
                 child: Row(
@@ -124,117 +126,93 @@ class _HeaderState extends State<Header> {
                 ),
               ),
             ),
+          
+          // 3. Spasi untuk mendorong tombol ke kanan di mobile
+          if (isMobile)
+            Spacer(),
 
-            // tombol di kanan - conditional based on login state
-            ...(_isLoggedIn
-                ? [
-                    // Show user menu when logged in
-                    PopupMenuButton(
+          // 4. Tombol/Menu Kanan
+          ...(_isLoggedIn
+              ? [
+                  // Menu Akun (Hanya ditampilkan sebagai Popup di Desktop agar hemat ruang)
+                  if (!isMobile)
+                    PopupMenuButton<String>(
                       icon: CircleAvatar(
                         backgroundColor: Colors.green[700],
                         child: Icon(Icons.person, color: Colors.white),
                       ),
                       tooltip: _userName,
+                      onSelected: (value) {
+                        if (value == 'logout') _handleLogout();
+                        // Tambahkan navigasi lain di sini
+                      },
                       itemBuilder: (context) => [
                         PopupMenuItem(
                           enabled: false,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                _userName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
+                              Text(_userName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                               Divider(),
                             ],
                           ),
                         ),
+                        PopupMenuItem(value: 'orders', child: Row(children: [Icon(Icons.shopping_bag, size: 20), SizedBox(width: 8), Text('My Orders')])),
+                        PopupMenuItem(value: 'profile', child: Row(children: [Icon(Icons.person, size: 20), SizedBox(width: 8), Text('Profile')])),
                         PopupMenuItem(
-                          child: Row(
-                            children: [
-                              Icon(Icons.shopping_bag, size: 20),
-                              SizedBox(width: 8),
-                              Text('My Orders'),
-                            ],
-                          ),
-                          onTap: () {
-                            // Navigate to orders
-                          },
-                        ),
-                        PopupMenuItem(
-                          child: Row(
-                            children: [
-                              Icon(Icons.person, size: 20),
-                              SizedBox(width: 8),
-                              Text('Profile'),
-                            ],
-                          ),
-                          onTap: () {
-                            // Navigate to profile
-                          },
-                        ),
-                        PopupMenuItem(
-                          child: Row(
-                            children: [
-                              Icon(Icons.logout, size: 20, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text(
-                                'Logout',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ],
-                          ),
-                          onTap: _handleLogout,
-                        ),
+                            value: 'logout', 
+                            child: Row(children: [Icon(Icons.logout, size: 20, color: Colors.red), SizedBox(width: 8), Text('Logout', style: TextStyle(color: Colors.red))])),
                       ],
                     ),
-                    SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(Icons.shopping_cart, color: Colors.green[700]),
-                      onPressed: () {
-                        // Navigate to cart
-                      },
-                    ),
-                  ]
-                : [
-                    // Show login/register buttons when not logged in
+                  
+                  // Ikon Keranjang
+                  SizedBox(width: isMobile ? 0 : 8),
+                  IconButton(
+                    icon: Icon(Icons.shopping_cart, color: Colors.green[700]),
+                    onPressed: () {
+                      // Navigate to cart
+                    },
+                  ),
+                ]
+              : [
+                  // Tombol Masuk/Daftar (Hanya di layar BESAR)
+                  if (!isMobile)
                     ElevatedButton(
                       onPressed: () {
                         Navigator.pushNamed(context, '/login');
                       },
                       style: ButtonStyle(
-                        backgroundColor: MaterialStateProperty.all(
-                          Colors.green[700],
-                        ),
-                        foregroundColor: MaterialStateProperty.all(
-                          Colors.white,
-                        ),
+                        backgroundColor: MaterialStateProperty.all(Colors.green[700]),
+                        foregroundColor: MaterialStateProperty.all(Colors.white),
                         shape: MaterialStateProperty.all(StadiumBorder()),
                       ),
                       child: Text('Masuk'),
                     ),
-                    SizedBox(width: 10),
+                  if (!isMobile) SizedBox(width: 10),
+                  if (!isMobile)
                     OutlinedButton(
                       onPressed: () {
                         Navigator.pushNamed(context, '/register');
                       },
                       style: ButtonStyle(
-                        side: MaterialStateProperty.all(
-                          BorderSide(color: Colors.green[300]!),
-                        ),
+                        side: MaterialStateProperty.all(BorderSide(color: Colors.green[300]!)),
                         shape: MaterialStateProperty.all(StadiumBorder()),
-                        foregroundColor: MaterialStateProperty.all(
-                          Colors.green[700],
-                        ),
+                        foregroundColor: MaterialStateProperty.all(Colors.green[700]),
                       ),
                       child: Text('Daftar'),
                     ),
-                  ]),
-          ],
-        ),
+                ]),
+          
+          // 5. Menu Hamburger (Hanya muncul di layar MOBILE)
+          if (isMobile)
+            IconButton(
+              icon: Icon(Icons.menu, color: Colors.black),
+              onPressed: () {
+                // Trigger Drawer yang sudah didefinisikan di main.dart
+                Scaffold.of(context).openEndDrawer(); 
+              },
+            ),
+        ],
       ),
     );
   }
@@ -244,6 +222,7 @@ class _NavText extends StatelessWidget {
   final String text;
   final bool isActive;
   _NavText(this.text, {this.isActive = false});
+  
   @override
   Widget build(BuildContext context) {
     return Text(
@@ -255,4 +234,3 @@ class _NavText extends StatelessWidget {
     );
   }
 }
-// ...existing code...

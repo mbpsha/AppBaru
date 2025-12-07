@@ -9,11 +9,11 @@ class HomePageContent extends StatelessWidget {
       children: [
         _HeroSection(),
         SizedBox(height: 40),
-        _Artikel3(),
+        _Artikel3(), // Sudah responsif
         SizedBox(height: 40),
-        _KeunggulanAlat(),
+        _KeunggulanAlat(), // Sudah responsif
         SizedBox(height: 40),
-        _FiturBawah(),
+        _FiturBawah(), // Sudah responsif
       ],
     );
   }
@@ -26,6 +26,8 @@ class HomePageContent extends StatelessWidget {
 class _HeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+    
     return Stack(
       children: [
         // background
@@ -43,7 +45,7 @@ class _HeroSection extends StatelessWidget {
         // Text hero
         Positioned.fill(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 26),
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 20 : 26),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +53,8 @@ class _HeroSection extends StatelessWidget {
                 Text(
                   "Stech Smart\nGarden",
                   style: TextStyle(
-                    fontSize: 44,
+                    // Ukuran font lebih kecil di mobile
+                    fontSize: isMobile ? 36 : 44, 
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     height: 1.1,
@@ -62,7 +65,7 @@ class _HeroSection extends StatelessWidget {
                   "Sistem irigasi otomatis berbasis IoT yang membantu\n"
                   "petani dan masyarakat dalam mengelola air secara efisien.",
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: isMobile ? 14 : 15,
                     color: Colors.white.withOpacity(0.9),
                     height: 1.4,
                   ),
@@ -74,7 +77,7 @@ class _HeroSection extends StatelessWidget {
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green[700],
-                        foregroundColor: Colors.white, // <<< WARNA TEKS
+                        foregroundColor: Colors.white, 
                         shape: StadiumBorder(),
                         padding: EdgeInsets.symmetric(
                           horizontal: 26,
@@ -111,34 +114,43 @@ class _HeroSection extends StatelessWidget {
 }
 
 //
-// ========================= 3 ARTIKEL ================
+// ========================= 3 ARTIKEL (RESPONSIVE) ================
 //
 
 class _Artikel3 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+
+    // List konten artikel
+    final articles = [
+      _ArtikelCard(
+        img: "assets/images/keunggulan-alat-0.png",
+        title: "Indonesia Dorong Pertanian Ramah Lingkungan dengan Teknologi IoT",
+      ),
+      _ArtikelCard(
+        img: "assets/images/keunggulan-alat-1.png",
+        title: "Petani Sayuran Mulai Terapkan Irigasi Otomatis untuk Hemat Air",
+      ),
+      _ArtikelCard(
+        img: "assets/images/keunggulan-alat-2.png",
+        title: "Tren Pertanian Urban: Berkebun di Lahan Sempit dengan Smart Garden",
+      ),
+    ];
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 26),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _ArtikelCard(
-            img: "assets/images/keunggulan-alat-0.png",
-            title:
-                "Indonesia Dorong Pertanian Ramah Lingkungan dengan Teknologi IoT",
-          ),
-          _ArtikelCard(
-            img: "assets/images/keunggulan-alat-1.png",
-            title:
-                "Petani Sayuran Mulai Terapkan Irigasi Otomatis untuk Hemat Air",
-          ),
-          _ArtikelCard(
-            img: "assets/images/keunggulan-alat-2.png",
-            title:
-                "Tren Pertanian Urban: Berkebun di Lahan Sempit dengan Smart Garden",
-          ),
-        ],
-      ),
+      child: isMobile
+          ? Wrap( // Gunakan Wrap di Mobile agar bisa turun baris otomatis
+              spacing: 20, 
+              runSpacing: 20, 
+              alignment: WrapAlignment.center, 
+              children: articles,
+            )
+          : Row( // Gunakan Row di Desktop
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: articles,
+            ),
     );
   }
 }
@@ -151,13 +163,16 @@ class _ArtikelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 800;
+    
     return Container(
-      width: 250,
+      // Atur lebar fleksibel di mobile (misal 300)
+      width: isMobile ? 300 : 250, 
       child: Column(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: Image.asset(img, height: 150, fit: BoxFit.cover),
+            child: Image.asset(img, height: 150, fit: BoxFit.cover), 
           ),
           SizedBox(height: 10),
           Text(
@@ -176,7 +191,7 @@ class _ArtikelCard extends StatelessWidget {
 }
 
 //
-// ========================= KEUNGGULAN ALAT =========================
+// ========================= KEUNGGULAN ALAT (RESPONSIVE) =========================
 //
 
 class _KeunggulanAlat extends StatelessWidget {
@@ -244,58 +259,90 @@ class _KeunggulanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = [
-      Expanded(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: reverse
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green[800],
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                desc,
-                textAlign: TextAlign.justify,
+    final isMobile = MediaQuery.of(context).size.width < 800;
 
-                style: TextStyle(fontSize: 14, height: 1.4),
-              ),
-            ],
+    // Konten teks
+    final textContent = Padding(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        // Alignment teks menyesuaikan mobile atau reverse
+        crossAxisAlignment: isMobile
+            ? CrossAxisAlignment.center 
+            : (reverse ? CrossAxisAlignment.end : CrossAxisAlignment.start), 
+        children: [
+          Text(
+            title,
+            textAlign: isMobile ? TextAlign.center : TextAlign.start,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.green[800],
+            ),
           ),
-        ),
+          SizedBox(height: 10),
+          Text(
+            desc,
+            // Alignment paragraf menyesuaikan
+            textAlign: isMobile ? TextAlign.center : TextAlign.justify, 
+            style: TextStyle(fontSize: 14, height: 1.4),
+          ),
+        ],
       ),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(image, width: 340, height: 200, fit: BoxFit.cover),
+    );
+
+    // Konten gambar
+    final imageContent = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.asset(
+        image,
+        // Lebar gambar penuh di mobile
+        width: isMobile ? double.infinity : 340, 
+        height: 200, 
+        fit: BoxFit.cover,
       ),
+    );
+
+    // List urutan konten
+    final content = [
+      isMobile ? textContent : Expanded(child: textContent), // Teks (Expanded di desktop)
+      SizedBox(height: isMobile ? 16 : 0), // Spasi vertikal di mobile
+      imageContent, // Gambar
     ];
 
-    return Row(children: reverse ? content.reversed.toList() : content);
+    if (isMobile) {
+      // Di mobile, gunakan Column
+      return Column(
+        children: content,
+      );
+    } else {
+      // Di desktop, gunakan Row
+      return Row(
+        // Perhatikan urutan konten jika reverse
+        children: reverse ? content.reversed.toList() : content,
+      );
+    }
   }
 }
 
 //
-// ========================= FOTO BAWAH =========================
+// ========================= FOTO BAWAH (RESPONSIVE) =========================
 //
 
 class _FiturBawah extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _FiturItem("Monitoring\nReal time"),
-        _FiturItem("Irigasi\nOtomatis"),
-        _FiturItem("Dashboard\nWeb"),
-      ],
-    );
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    final items = [
+      _FiturItem("Monitoring\nReal time"),
+      _FiturItem("Irigasi\nOtomatis"),
+      _FiturItem("Dashboard\nWeb"),
+    ];
+
+    // Gunakan Column di mobile, Row di desktop
+    return isMobile
+        ? Column(children: items) 
+        : Row(children: items); 
   }
 }
 
@@ -305,30 +352,59 @@ class _FiturItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Stack(
-        children: [
-          Image.asset(
-            "assets/images/foto-bawah-3.png",
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
-            width: double.infinity,
-            fit: BoxFit.fitWidth,
-          ),
-          Positioned.fill(
-            child: Center(
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
+    // Di mobile, setiap item adalah widget independen. Di desktop menggunakan Expanded.
+    return isMobile
+        ? Padding(
+            padding: const EdgeInsets.only(bottom: 8.0), 
+            child: Stack(
+              children: [
+                Image.asset(
+                  "assets/images/foto-bawah-3.png",
+                  width: double.infinity,
+                  fit: BoxFit.fitWidth,
+                  height: 150, // Tetapkan tinggi di mobile agar konsisten
                 ),
-              ),
+                Positioned.fill(
+                  child: Center(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
+          )
+        : Expanded( // Di desktop gunakan Expanded
+            child: Stack(
+              children: [
+                Image.asset(
+                  "assets/images/foto-bawah-3.png",
+                  width: double.infinity,
+                  fit: BoxFit.fitWidth,
+                ),
+                Positioned.fill(
+                  child: Center(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
   }
 }
