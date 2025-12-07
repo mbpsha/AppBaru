@@ -1,3 +1,4 @@
+// lib/widgets/sidebar_clean.dart (VERSI TERBARU)
 import 'package:flutter/material.dart';
 
 class AdminSidebarClean extends StatelessWidget {
@@ -17,6 +18,7 @@ class AdminSidebarClean extends StatelessWidget {
     return Container(
       width: width,
       decoration: const BoxDecoration(
+        // Menggunakan gradient yang Anda sediakan
         gradient: LinearGradient(
           colors: [Color(0xFFE8FCEC), Color(0xFFF3FFF9)],
           begin: Alignment.topCenter,
@@ -35,14 +37,23 @@ class AdminSidebarClean extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
+            
+            // --- MENU YANG TERSISA (INDEX BARU) ---
+            
+            // 0: Dashboard
             _buildMenuItem(context, Icons.dashboard, 'Dashboard', 0),
-            _buildMenuItem(context, Icons.people, 'Users', 1),
-            _buildMenuItem(context, Icons.shopping_bag, 'Products', 2),
-            _buildMenuItem(context, Icons.payment, 'Payments', 3),
-            _buildMenuItem(context, Icons.receipt_long, 'Orders', 4),
-            _buildMenuItem(context, Icons.article, 'News', 5),
+            
+            // 1: Products
+            _buildMenuItem(context, Icons.shopping_bag, 'Products', 1),
+            
+            // 2: News
+            _buildMenuItem(context, Icons.article, 'News', 2),
+            
             const Spacer(),
-            _buildMenuItem(context, Icons.logout, 'Logout', 6),
+            
+            // 3: Logout
+            _buildMenuItem(context, Icons.logout, 'Logout', 3),
+            
             const SizedBox(height: 24),
           ],
         ),
