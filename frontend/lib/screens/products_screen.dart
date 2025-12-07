@@ -1,9 +1,15 @@
 // lib/screens/products_screen.dart
+
 import 'package:flutter/material.dart';
 
-class ProductsScreen extends StatelessWidget {
+class ProductsScreen extends StatefulWidget {
   const ProductsScreen({Key? key}) : super(key: key);
 
+  @override
+  State<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> {
   static const List<Map<String, dynamic>> _productData = [
     {
       'id': 1,
@@ -16,6 +22,50 @@ class ProductsScreen extends StatelessWidget {
     // Tambahkan data produk lainnya di sini jika ada
   ];
 
+  // --- Fungsi untuk Menampilkan Modal ---
+  void _showAddProductModal(BuildContext context, bool isMobile) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Tentukan lebar berdasarkan mode desktop/mobile
+        final dialogWidth = isMobile
+            ? MediaQuery.of(context).size.width * 0.9
+            : 600.0;
+
+        return AlertDialog(
+          // Judul Dialog
+          title: const Text('Add New Product'),
+          // Batasi lebar dialog
+          content: SizedBox(
+            width: dialogWidth,
+            child:
+                const AddProductForm(), // Widget Form yang sudah dibuat di bawah
+          ),
+          // Aksi tombol pada dialog (Cancel/Save)
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Tutup dialog
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // TODO: Implementasi logika simpan produk baru
+                Navigator.of(context).pop(); // Tutup dialog setelah simpan
+                print('Saving new product...');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // --- Widget Utama ProductsScreen ---
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -32,7 +82,7 @@ class ProductsScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Products ',
+                    'Products ', // Judul halaman
                     style: TextStyle(
                       fontSize: isMobile ? 24 : 28,
                       fontWeight: FontWeight.bold,
@@ -43,8 +93,8 @@ class ProductsScreen extends StatelessWidget {
                     height: isMobile ? 40 : 48,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Implementasi navigasi ke halaman tambah produk
-                        print('Add New Product clicked!');
+                        // PANGGIL FUNGSI MODAL DI SINI
+                        _showAddProductModal(context, isMobile);
                       },
                       icon: const Icon(Icons.add_circle_outline, size: 20),
                       label: const Text(
@@ -64,47 +114,36 @@ class ProductsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
+              const Text(
+                'All Products',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+
               // --- Kartu Tabel Produk ---
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
                 elevation: 2,
-                // Menggunakan FractionallySizedBox untuk memastikan Card mengambil lebar penuh
                 child: Padding(
                   padding: EdgeInsets.all(isMobile ? 8 : 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.0,
-                          vertical: 4.0,
-                        ),
-                        child: Text(
-                          'All Products',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
                       const Divider(),
 
                       // Menggunakan LayoutBuilder untuk mendapatkan lebar yang tersedia
                       LayoutBuilder(
                         builder: (context, boxConstraints) {
-                          // Memastikan lebar minimum tabel adalah lebar yang tersedia saat desktop (agar full width)
-                          // atau lebar tetap yang cukup besar saat mobile (agar bisa di-scroll)
                           final minTableWidth = isMobile
                               ? 700.0
                               : boxConstraints.maxWidth;
 
                           return SingleChildScrollView(
-                            scrollDirection:
-                                Axis.horizontal, // Selalu horizontal scroll
+                            scrollDirection: Axis.horizontal,
                             child: SizedBox(
-                              width: minTableWidth, // Memaksa lebar minimum
+                              width: minTableWidth,
                               child: _buildDataTable(
                                 context,
                                 isMobile,
@@ -125,7 +164,6 @@ class ProductsScreen extends StatelessWidget {
     );
   }
 
-  // Mengubah parameter untuk menerima lebar minimum tabel
   Widget _buildDataTable(
     BuildContext context,
     bool isMobile,
@@ -185,11 +223,153 @@ class ProductsScreen extends StatelessWidget {
     }).toList();
 
     return DataTable(
-      // Kini DataTable di bungkus dengan SizedBox dengan lebar yang ditentukan
       columnSpacing: isMobile ? 12 : 30,
       horizontalMargin: isMobile ? 8 : 10,
       columns: columns,
       rows: rows,
+    );
+  }
+}
+
+// =======================================================================
+// 2. Widget Formulir "Add New Product" (Sesuai Tampilan yang Diunggah)
+// =======================================================================
+
+class AddProductForm extends StatelessWidget {
+  const AddProductForm({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product Name
+          const Text(
+            'Product Name',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          const TextField(
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 10,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Description
+          const Text(
+            'Description',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          const TextField(
+            maxLines: 4,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.all(10),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Price and Stock (Side by Side)
+          Row(
+            children: [
+              // Price (Rp)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Price (Rp)',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    const TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Stock
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Stock',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    const TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Product Image
+          const Text(
+            'Product Image',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Row(
+              children: [
+                // Tombol Choose File
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO: Implementasi memilih file gambar
+                    print('Choose File clicked');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[200],
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text('Choose File'),
+                ),
+                const SizedBox(width: 10),
+                // Nama File Placeholder
+                const Text('No file chosen'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'Upload product image',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 }
