@@ -57,15 +57,8 @@ class AuthController extends Controller
                 'message' => 'Login successful!',
                 'user' => $user,
                 'token' => $token,
-                'email_verified' => $verified,
-                'redirect' => $verified ? ($user->role === 'admin' ? route('admin.dashboard') : route('dashboard')) : route('verification.notice')
+                'redirect' => $user->role === 'admin' ? route('admin.dashboard') : route('dashboard')
             ], 200);
-        }
-
-        // Check if email is verified (skip for admin)
-        if ($user->role !== 'admin' && !$user->hasVerifiedEmail()) {
-            return redirect()->route('verification.notice')
-                ->with('message', 'Silakan verifikasi email Anda untuk dapat mengakses fitur Profil dan Pemesanan. Cek inbox email Anda.');
         }
 
         // Web: Redirect based on user role
@@ -96,24 +89,25 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        // Send email verification notification
-        $user->sendEmailVerificationNotification();
-
         // Generate Sanctum token
         $token = $user->createToken('auth-token')->plainTextToken;
 
         // Return JSON with Sanctum token (untuk Postman & API)
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
-                'message' => 'Registrasi berhasil! Silakan cek email Anda untuk verifikasi akun.',
+                'message' => 'Registrasi berhasil!',
                 'user' => $user,
                 'token' => $token,
-                'redirect' => route('verification.notice')
+                'redirect' => $user->role === 'admin' ? route('admin.dashboard') : route('dashboard')
             ], 200);
         }
 
-        // Web: Redirect to verification notice page
-        return redirect()->route('verification.notice')->with('message', 'Registrasi berhasil! Silakan cek email Anda untuk verifikasi akun.');
+        // Web: Redirect based on role
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard')->with('message', 'Registrasi berhasil!');
+        }
+
+        return redirect()->route('dashboard')->with('message', 'Registrasi berhasil!');
     }
 
     public function logout(Request $request)
@@ -183,8 +177,7 @@ class AuthController extends Controller
             'message' => 'Login successful!',
             'user' => $user,
             'token' => $token,
-            'email_verified' => $verified,
-            'redirect' => $verified ? ($user->role === 'admin' ? '/admin/dashboard' : '/dashboard') : '/email/verify'
+            'redirect' => $user->role === 'admin' ? '/admin/dashboard' : '/dashboard'
         ], 200);
     }
 
@@ -212,17 +205,14 @@ class AuthController extends Controller
         // Regenerate session to prevent session fixation
         $request->session()->regenerate();
 
-        // Send email verification notification
-        $user->sendEmailVerificationNotification();
-
         // Generate Sanctum token
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Registrasi berhasil! Silakan cek email Anda untuk verifikasi akun.',
+            'message' => 'Registrasi berhasil!',
             'user' => $user,
             'token' => $token,
-            'redirect' => '/email/verify'
+            'redirect' => $user->role === 'admin' ? '/admin/dashboard' : '/dashboard'
         ], 201);
     }
 

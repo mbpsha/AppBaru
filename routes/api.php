@@ -12,6 +12,12 @@ use App\Http\Controllers\Auth\AuthController;
 Route::middleware(['web'])->group(function () {
     Route::post('/register', [AuthController::class, 'apiRegister'])->name('api.register');
     Route::post('/login', [AuthController::class, 'apiLogin'])->name('api.login');
+
+    // Public Product & News Routes (no auth required)
+    Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('api.products.index');
+    Route::get('/products/{id}', [\App\Http\Controllers\ProductController::class, 'show'])->name('api.products.show');
+    Route::get('/news', [\App\Http\Controllers\NewsController::class, 'index'])->name('api.news.index');
+    Route::get('/news/{id}', [\App\Http\Controllers\NewsController::class, 'show'])->name('api.news.show');
 });
 
 // Protected Routes (Sanctum Token Required) - Also need web middleware for session
@@ -140,6 +146,22 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
         Route::post('/admin/products', [\App\Http\Controllers\Admin\ProductController::class, 'store'])->name('api.admin.products.store');
         Route::put('/admin/products/{product}', [\App\Http\Controllers\Admin\ProductController::class, 'update'])->name('api.admin.products.update');
         Route::delete('/admin/products/{product}', [\App\Http\Controllers\Admin\ProductController::class, 'destroy'])->name('api.admin.products.destroy');
+
+        // Admin News Management
+        Route::get('/admin/news', [\App\Http\Controllers\Admin\NewsController::class, 'index'])->name('api.admin.news.index');
+        Route::post('/admin/news', [\App\Http\Controllers\Admin\NewsController::class, 'store'])->name('api.admin.news.store');
+        Route::put('/admin/news/{news}', [\App\Http\Controllers\Admin\NewsController::class, 'update'])->name('api.admin.news.update');
+        Route::delete('/admin/news/{news}', [\App\Http\Controllers\Admin\NewsController::class, 'destroy'])->name('api.admin.news.destroy');
+
+        // Admin Dashboard Statistics
+        Route::get('/admin/dashboard/stats', function() {
+            return response()->json([
+                'total_products' => \App\Models\Product::count(),
+                'total_orders' => \App\Models\Order::count(),
+                'total_users' => \App\Models\User::where('role', 'user')->count(),
+                'total_revenue' => \App\Models\Order::where('status', 'completed')->sum('total_harga'),
+            ]);
+        })->name('api.admin.dashboard.stats');
     });
 });
 

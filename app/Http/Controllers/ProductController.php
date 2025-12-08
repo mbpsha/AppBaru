@@ -11,12 +11,22 @@ use Inertia\Inertia;
 class ProductController extends Controller
 {
     // Public API methods
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Product::all());
+        // If it's an API request, return JSON
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'data' => Product::all()
+            ]);
+        }
+
+        // Otherwise return Inertia for web
+        return Inertia::render('User/ProductList', [
+            'products' => Product::all()
+        ]);
     }
 
-    public function show($id_produk)
+    public function show(Request $request, $id_produk)
     {
         $product = Product::with(['reviews.user'])
             ->where('id_produk', $id_produk)
@@ -31,6 +41,21 @@ class ProductController extends Controller
                 'rating'   => (int) $r->rating,
                 'isi'      => $r->body ?? $r->komentar ?? '',
             ])->values();
+
+        // If it's an API request, return JSON
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'data' => [
+                    'id_produk'   => $product->id_produk,
+                    'nama_produk' => $product->nama_produk,
+                    'deskripsi'   => $product->deskripsi,
+                    'harga'       => (int) $product->harga,
+                    'stok'        => (int) $product->stok,
+                    'gambar'      => $product->gambar,
+                    'reviews'     => $reviews,
+                ]
+            ]);
+        }
 
         return Inertia::render('User/ProductDetail', [
             'product' => [

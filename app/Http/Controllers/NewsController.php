@@ -10,8 +10,16 @@ use Illuminate\Support\Facades\Storage;
 class NewsController extends Controller
 {
     // Untuk User - Tampilkan berita yang published
-    public function index()
+    public function index(Request $request)
     {
+        // If it's an API request, return JSON with all news
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'data' => News::latest()->get()
+            ]);
+        }
+
+        // Otherwise return Inertia for web with published news only
         $news = News::published()
             ->latest()
             ->paginate(4)
@@ -33,9 +41,16 @@ class NewsController extends Controller
     }
 
     // Tampilkan detail berita
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $article = News::findOrFail($id);
+
+        // If it's an API request, return JSON
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'data' => $article
+            ]);
+        }
 
         return Inertia::render('User/BeritaDetail', [
             'article' => $article
