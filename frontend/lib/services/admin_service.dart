@@ -11,7 +11,7 @@ class AdminService {
   // Get all products
   Future<Map<String, dynamic>> getProducts() async {
     try {
-      final response = await _apiClient.dio.get('/api/admin/products');
+      final response = await _apiClient.dio.get('/admin/products');
 
       return {
         'success': true,
@@ -32,7 +32,7 @@ class AdminService {
   }) async {
     try {
       final response = await _apiClient.dio.post(
-        '/api/admin/products',
+        '/admin/products',
         data: {
           'nama_produk': namaProduk,
           'deskripsi': deskripsi,
@@ -63,7 +63,7 @@ class AdminService {
   }) async {
     try {
       final response = await _apiClient.dio.put(
-        '/api/admin/products/$productId',
+        '/admin/products/$productId',
         data: {
           'nama_produk': namaProduk,
           'deskripsi': deskripsi,
@@ -86,7 +86,7 @@ class AdminService {
   // Delete product
   Future<Map<String, dynamic>> deleteProduct(int productId) async {
     try {
-      await _apiClient.dio.delete('/api/admin/products/$productId');
+      await _apiClient.dio.delete('/admin/products/$productId');
 
       return {'success': true, 'message': 'Product deleted successfully'};
     } on DioException catch (e) {
@@ -101,7 +101,7 @@ class AdminService {
   // Get all orders
   Future<Map<String, dynamic>> getOrders() async {
     try {
-      final response = await _apiClient.dio.get('/api/admin/orders');
+      final response = await _apiClient.dio.get('/admin/orders');
 
       return {
         'success': true,
@@ -115,7 +115,7 @@ class AdminService {
   // Get order detail
   Future<Map<String, dynamic>> getOrderDetail(int orderId) async {
     try {
-      final response = await _apiClient.dio.get('/api/admin/orders/$orderId');
+      final response = await _apiClient.dio.get('/admin/orders/$orderId');
 
       return {'success': true, 'order': response.data['data'] ?? response.data};
     } on DioException catch (e) {
@@ -130,7 +130,7 @@ class AdminService {
   }) async {
     try {
       final response = await _apiClient.dio.put(
-        '/api/admin/orders/$orderId/status',
+        '/admin/orders/$orderId/status',
         data: {'status': status},
       );
 
@@ -155,7 +155,7 @@ class AdminService {
   }) async {
     try {
       final response = await _apiClient.dio.put(
-        '/api/admin/payments/$paymentId/verify',
+        '/admin/payments/$paymentId/verify',
         data: {'status': status},
       );
 
@@ -164,6 +164,108 @@ class AdminService {
         'message': 'Payment verification updated successfully',
         'payment': response.data['data'] ?? response.data,
       };
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // ============================================
+  // NEWS MANAGEMENT
+  // ============================================
+
+  // Get all news (admin)
+  Future<Map<String, dynamic>> getNews() async {
+    try {
+      final response = await _apiClient.dio.get('/admin/news');
+
+      return {'success': true, 'news': response.data['data'] ?? response.data};
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // Create news
+  Future<Map<String, dynamic>> createNews({
+    required String title,
+    required String content,
+    String? excerpt,
+    String? image,
+    bool? isPublished,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/admin/news',
+        data: {
+          'title': title,
+          'content': content,
+          'excerpt': excerpt,
+          'image': image,
+          'is_published': isPublished ?? false,
+        },
+      );
+
+      return {
+        'success': true,
+        'message': 'News created successfully',
+        'news': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // Update news
+  Future<Map<String, dynamic>> updateNews({
+    required int newsId,
+    required String title,
+    required String content,
+    String? excerpt,
+    String? image,
+    bool? isPublished,
+  }) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '/admin/news/$newsId',
+        data: {
+          'title': title,
+          'content': content,
+          'excerpt': excerpt,
+          'image': image,
+          'is_published': isPublished,
+        },
+      );
+
+      return {
+        'success': true,
+        'message': 'News updated successfully',
+        'news': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // Delete news
+  Future<Map<String, dynamic>> deleteNews(int newsId) async {
+    try {
+      await _apiClient.dio.delete('/admin/news/$newsId');
+
+      return {'success': true, 'message': 'News deleted successfully'};
+    } on DioException catch (e) {
+      return _handleError(e);
+    }
+  }
+
+  // ============================================
+  // DASHBOARD STATISTICS
+  // ============================================
+
+  // Get dashboard stats
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final response = await _apiClient.dio.get('/admin/dashboard/stats');
+
+      return {'success': true, 'stats': response.data};
     } on DioException catch (e) {
       return _handleError(e);
     }

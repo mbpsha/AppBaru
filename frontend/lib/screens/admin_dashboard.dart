@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../widgets/header_clean.dart';
 import '../widgets/sidebar_clean.dart';
+import '../services/auth_service.dart';
+import '../services/admin_service.dart';
 // Impor halaman yang akan ditampilkan
 import 'products_screen.dart';
 import 'news_screen.dart';
@@ -16,6 +19,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // 1. STATE: Menyimpan index menu yang sedang aktif
   // Urutan index: 0=Dashboard, 1=Products, 2=News, 3=Logout
   int _selectedIndex = 0;
+  String _userName = 'Loading...';
+  final _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final result = await _authService.getCurrentUser();
+      if (result['success'] && mounted) {
+        setState(() {
+          _userName =
+              result['user']['nama'] ?? result['user']['name'] ?? 'Admin';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _userName = 'Admin';
+        });
+      }
+    }
+  }
 
   // 2. DAFTAR KONTEN: Widget yang akan ditampilkan berdasarkan _selectedIndex
   final List<Widget> _contentWidgets = [
@@ -72,7 +101,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             appBar: PreferredSize(
               preferredSize: const Size.fromHeight(68),
               child: AdminHeaderClean(
-                userName: 'zetaci',
+                userName: _userName,
                 showMenu: true,
                 onMenuPressed: () => scaffoldKey.currentState?.openDrawer(),
               ),
@@ -103,7 +132,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 child: Column(
                   children: [
                     // Header
-                    const AdminHeaderClean(userName: 'zetaci'),
+                    AdminHeaderClean(userName: _userName),
                     // Konten (Dashboard, Products, News, dll.)
                     Expanded(child: _buildBodyContent()),
                   ],
@@ -121,11 +150,52 @@ class _AdminDashboardState extends State<AdminDashboard> {
 // 5. CLASS DashboardContent yang sudah difilter dan ditambahkan callback
 // ------------------------------------------------------------------
 
-class DashboardContent extends StatelessWidget {
+class DashboardContent extends StatefulWidget {
   // Menerima callback untuk navigasi "View All Products"
   final VoidCallback? onViewAllProducts;
 
   const DashboardContent({Key? key, this.onViewAllProducts}) : super(key: key);
+
+  @override
+  State<DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<DashboardContent> {
+  Map<String, dynamic>? _stats;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final adminService = AdminService();
+      final result = await adminService.getDashboardStats();
+      if (mounted) {
+        setState(() {
+          if (result['success']) {
+            _stats = result['stats'];
+            _errorMessage = null;
+          } else {
+            _errorMessage = result['message'] ?? 'Failed to load stats';
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading dashboard stats: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   Widget _buildStatCard(String title, String value, {Color? accent}) {
     // Fungsi Card Statistik Anda (tidak diubah)
@@ -170,12 +240,48 @@ class DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _errorMessage = null;
+                });
+                _loadStats();
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 800;
+        final gridCount = isMobile ? 2 : 4;
 
-        // Atur agar Stat Card hanya menampilkan satu item per baris (karena hanya satu item yang tersisa)
-        final gridCount = 1;
+        final totalProducts = _stats?['total_products'] ?? 0;
+        final totalOrders = _stats?['total_orders'] ?? 0;
+        final totalUsers = _stats?['total_users'] ?? 0;
+        final totalRevenue = _stats?['total_revenue'] ?? 0;
+        final formattedRevenue = NumberFormat.currency(
+          locale: 'id_ID',
+          symbol: 'Rp ',
+          decimalDigits: 0,
+        ).format(totalRevenue);
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(isMobile ? 16 : 24),
@@ -192,22 +298,35 @@ class DashboardContent extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              // Statistik Cards (Hanya 'Total Products' yang tersisa)
+              // Statistik Cards
               GridView.count(
                 crossAxisCount: gridCount,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                // Diatur agar Card tunggal terlihat lebih lebar/pendek
-                childAspectRatio: isMobile ? 2.5 : 5.0,
+                childAspectRatio: isMobile ? 1.8 : 2.5,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildStatCard(
                     'Total Products',
-                    '1',
+                    totalProducts.toString(),
                     accent: Colors.green[100],
                   ),
-                  // **Total Users, Total Orders, Pending Verification DIHAPUS**
+                  _buildStatCard(
+                    'Total Orders',
+                    totalOrders.toString(),
+                    accent: Colors.blue[100],
+                  ),
+                  _buildStatCard(
+                    'Total Users',
+                    totalUsers.toString(),
+                    accent: Colors.orange[100],
+                  ),
+                  _buildStatCard(
+                    'Revenue',
+                    formattedRevenue,
+                    accent: Colors.purple[100],
+                  ),
                 ],
               ),
               const SizedBox(height: 18),
@@ -235,7 +354,7 @@ class DashboardContent extends StatelessWidget {
                           ),
                           TextButton(
                             // MENGGUNAKAN CALLBACK UNTUK NAVIGASI KE PRODUCTS
-                            onPressed: onViewAllProducts,
+                            onPressed: widget.onViewAllProducts,
                             child: const Text('View All'),
                           ),
                         ],

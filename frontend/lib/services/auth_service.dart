@@ -50,7 +50,7 @@ class AuthService {
     try {
       final response = await _apiClient.dio.post(
         ApiConfig.login,
-        data: {'email': email, 'password': password},
+        data: {'login': email, 'password': password},
       );
 
       if (response.data['token'] != null) {

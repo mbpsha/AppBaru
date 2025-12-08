@@ -41,17 +41,24 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = false);
 
       if (result['success']) {
-        // Navigate to home first
-        Navigator.pushReplacementNamed(context, '/');
+        // Check user role and redirect accordingly
+        final userRole = result['user']['role'];
+        final userName = result['user']['nama'] ?? result['user']['name'];
+
+        if (userRole == 'admin') {
+          // Redirect admin to admin dashboard
+          Navigator.pushReplacementNamed(context, '/admin/dashboard');
+        } else {
+          // Redirect regular user to home
+          Navigator.pushReplacementNamed(context, '/');
+        }
 
         // Show success message after navigation
         Future.delayed(Duration(milliseconds: 300), () {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  'Login successful! Welcome ${result['user']['nama'] ?? result['user']['name']}',
-                ),
+                content: Text('Login successful! Welcome $userName'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -150,14 +157,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   SizedBox(height: 48),
 
-                  // Email Field
+                  // Email or Username Field
                   TextFormField(
                     controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    keyboardType: TextInputType.text,
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      hintText: 'Enter your email',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      labelText: 'Email or Username',
+                      hintText: 'Enter your email or username',
+                      prefixIcon: Icon(Icons.person_outline),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -175,10 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
+                        return 'Please enter your email or username';
                       }
                       return null;
                     },
