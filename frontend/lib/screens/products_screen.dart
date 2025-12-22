@@ -314,7 +314,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
       final productName = data['nama_produk'] ?? data['name'] ?? 'Unknown';
       final price = data['harga'] ?? data['price'] ?? 0;
       final stock = data['stok'] ?? data['stock'] ?? 0;
-      final imageUrl = data['gambar'] ?? data['image'];
+      // Prioritize gambar_url (full URL) over gambar (path)
+      final imageUrl = data['gambar_url'] ?? data['gambar'] ?? data['image'];
 
       return DataRow(
         cells: <DataCell>[
@@ -325,12 +326,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
               width: 40,
               height: 40,
               child: imageUrl != null
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.image, size: 28, color: Colors.grey),
-                    )
+                  ? _buildProductImage(imageUrl)
                   : const Icon(Icons.image, size: 28, color: Colors.grey),
             ),
           ),
@@ -366,6 +362,79 @@ class _ProductsScreenState extends State<ProductsScreen> {
       rows: rows,
     );
   }
+
+  Widget _buildProductImage(String imageUrl) {
+    print('🖼️ Image URL from API: $imageUrl'); // DEBUG
+    
+    // Cek apakah imageUrl sudah berupa data URL (base64)
+    if (imageUrl.startsWith('data:image')) {
+      print('📦 Using base64 image'); // DEBUG
+      try {
+        final base64String = imageUrl.split(',')[1];
+        final bytes = base64Decode(base64String);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            print('❌ Base64 image error: $error'); // DEBUG
+            return const Icon(Icons.image, size: 28, color: Colors.grey);
+          },
+        );
+      } catch (e) {
+        print('❌ Base64 decode error: $e'); // DEBUG
+        return const Icon(Icons.broken_image, size: 28, color: Colors.red);
+      }
+    }
+
+    // Jika bukan base64, asumsi URL dari server
+    // Jika URL sudah lengkap (dimulai dengan http), gunakan langsung
+    if (imageUrl.startsWith('http')) {
+      print('🌐 Using full HTTP URL: $imageUrl'); // DEBUG
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('❌ Network image error: $error'); // DEBUG
+          return const Icon(Icons.image, size: 28, color: Colors.grey);
+        },
+      );
+    }
+
+    // Jika hanya nama file atau path, tambahkan base URL
+    const baseUrl = 'http://localhost:8000';
+    String fullUrl;
+
+    if (imageUrl.startsWith('/storage/')) {
+      // Path already includes /storage/
+      fullUrl = '$baseUrl$imageUrl';
+      print('🔗 Path type: /storage/ -> $fullUrl'); // DEBUG
+    } else if (imageUrl.startsWith('storage/')) {
+      // Path starts with storage/ (without leading slash)
+      fullUrl = '$baseUrl/$imageUrl';
+      print('🔗 Path type: storage/ -> $fullUrl'); // DEBUG
+    } else if (imageUrl.startsWith('products/')) {
+      // Path is like products/filename.jpg
+      fullUrl = '$baseUrl/storage/$imageUrl';
+      print('🔗 Path type: products/ -> $fullUrl'); // DEBUG
+    } else if (imageUrl.startsWith('/')) {
+      // Path starts with / but not /storage/
+      fullUrl = '$baseUrl$imageUrl';
+      print('🔗 Path type: / -> $fullUrl'); // DEBUG
+    } else {
+      // Just a filename or other relative path
+      fullUrl = '$baseUrl/storage/products/$imageUrl';
+      print('🔗 Path type: filename -> $fullUrl'); // DEBUG
+    }
+
+    return Image.network(
+      fullUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        print('❌ Network image error for $fullUrl: $error'); // DEBUG
+        return const Icon(Icons.image, size: 28, color: Colors.grey);
+      },
+    );
+  }
 }
 
 // =======================================================================
@@ -392,6 +461,22 @@ class _AddProductFormState extends State<AddProductForm> {
   String? _selectedFileName;
   PlatformFile? _selectedFile;
   bool _isSaving = false;
+  int? _editingProductId;
+  String? _existingImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.productData != null) {
+      _editingProductId =
+          widget.productData!['id_produk'] ?? widget.productData!['id'];
+      _nameController.text = widget.productData!['nama_produk'] ?? '';
+      _descriptionController.text = widget.productData!['deskripsi'] ?? '';
+      _priceController.text = (widget.productData!['harga'] ?? 0).toString();
+      _stockController.text = (widget.productData!['stok'] ?? 0).toString();
+      _existingImageUrl = widget.productData!['gambar'];
+    }
+  }
 
   @override
   void dispose() {
@@ -441,13 +526,26 @@ class _AddProductFormState extends State<AddProductForm> {
 
     try {
       final adminService = AdminService();
-      final result = await adminService.createProduct(
-        namaProduk: _nameController.text.trim(),
-        deskripsi: _descriptionController.text.trim(),
-        harga: int.parse(_priceController.text.trim()),
-        stok: int.parse(_stockController.text.trim()),
-        gambar: _convertImageToBase64(),
-      );      if (mounted) {
+      final imageData = _convertImageToBase64() ?? _existingImageUrl;
+
+      final result = _editingProductId == null
+          ? await adminService.createProduct(
+              namaProduk: _nameController.text.trim(),
+              deskripsi: _descriptionController.text.trim(),
+              harga: int.parse(_priceController.text.trim()),
+              stok: int.parse(_stockController.text.trim()),
+              gambar: imageData,
+            )
+          : await adminService.updateProduct(
+              productId: _editingProductId!,
+              namaProduk: _nameController.text.trim(),
+              deskripsi: _descriptionController.text.trim(),
+              harga: int.parse(_priceController.text.trim()),
+              stok: int.parse(_stockController.text.trim()),
+              gambar: imageData,
+            );
+
+      if (mounted) {
         setState(() {
           _isSaving = false;
         });
@@ -455,7 +553,11 @@ class _AddProductFormState extends State<AddProductForm> {
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Product created successfully'),
+              content: Text(
+                _editingProductId == null
+                    ? 'Product created successfully'
+                    : 'Product updated successfully',
+              ),
               backgroundColor: Colors.green,
             ),
           );

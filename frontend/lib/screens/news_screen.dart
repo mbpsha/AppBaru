@@ -137,6 +137,39 @@ class _NewsScreenState extends State<NewsScreen> {
     }
   }
 
+  void _showEditNewsModal(
+    BuildContext context,
+    bool isMobile,
+    Map<String, dynamic> newsData,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        final dialogWidth = isMobile
+            ? MediaQuery.of(dialogContext).size.width * 0.9
+            : 600.0;
+
+        return AlertDialog(
+          title: const Text('Edit News'),
+          content: SizedBox(
+            width: dialogWidth,
+            child: AddNewsForm(
+              newsData: newsData,
+              onSave: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result == true) {
+      _loadNews();
+    }
+  }
+
   // --- Widget Utama NewsScreen ---
   @override
   Widget build(BuildContext context) {
@@ -325,6 +358,21 @@ class _NewsScreenState extends State<NewsScreen> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Tombol Edit
+                ElevatedButton(
+                  onPressed: () => _showEditNewsModal(context, isMobile, data),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                  ),
+                  child: const Text('Edit'),
+                ),
+                const SizedBox(width: 8),
                 // Tombol Delete
                 ElevatedButton(
                   onPressed: () => _deleteNews(newsId, title),
@@ -362,8 +410,10 @@ class _NewsScreenState extends State<NewsScreen> {
 
 class AddNewsForm extends StatefulWidget {
   final VoidCallback onSave;
+  final Map<String, dynamic>? newsData;
 
-  const AddNewsForm({Key? key, required this.onSave}) : super(key: key);
+  const AddNewsForm({Key? key, required this.onSave, this.newsData})
+    : super(key: key);
 
   @override
   State<AddNewsForm> createState() => _AddNewsFormState();
@@ -378,6 +428,21 @@ class _AddNewsFormState extends State<AddNewsForm> {
   PlatformFile? _selectedFile;
   String? _selectedFileName;
   bool _isSaving = false;
+  int? _editingNewsId;
+  String? _existingImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.newsData != null) {
+      _editingNewsId = widget.newsData!['id'] ?? widget.newsData!['id_berita'];
+      _titleController.text = widget.newsData!['title'] ?? '';
+      _excerptController.text = widget.newsData!['excerpt'] ?? '';
+      _contentController.text = widget.newsData!['content'] ?? '';
+      _publishImmediately = widget.newsData!['is_published'] ?? false;
+      _existingImageUrl = widget.newsData!['image'];
+    }
+  }
 
   @override
   void dispose() {
@@ -457,13 +522,24 @@ class _AddNewsFormState extends State<AddNewsForm> {
 
     try {
       final adminService = AdminService();
-      final result = await adminService.createNews(
-        title: _titleController.text.trim(),
-        content: _contentController.text.trim(),
-        excerpt: _excerptController.text.trim(),
-        image: _convertImageToBase64(),
-        isPublished: _publishImmediately,
-      );
+      final imageData = _convertImageToBase64() ?? _existingImageUrl;
+
+      final result = _editingNewsId == null
+          ? await adminService.createNews(
+              title: _titleController.text.trim(),
+              content: _contentController.text.trim(),
+              excerpt: _excerptController.text.trim(),
+              image: imageData,
+              isPublished: _publishImmediately,
+            )
+          : await adminService.updateNews(
+              newsId: _editingNewsId!,
+              title: _titleController.text.trim(),
+              content: _contentController.text.trim(),
+              excerpt: _excerptController.text.trim(),
+              image: imageData,
+              isPublished: _publishImmediately,
+            );
 
       if (mounted) {
         setState(() {
@@ -473,7 +549,11 @@ class _AddNewsFormState extends State<AddNewsForm> {
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('News created successfully'),
+              content: Text(
+                _editingNewsId == null
+                    ? 'News created successfully'
+                    : 'News updated successfully',
+              ),
               backgroundColor: Colors.green,
             ),
           );
