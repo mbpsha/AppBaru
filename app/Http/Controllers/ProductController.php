@@ -15,8 +15,26 @@ class ProductController extends Controller
     {
         // If it's an API request, return JSON
         if ($request->expectsJson() || $request->is('api/*')) {
+            $products = Product::all()->map(function ($product) {
+                // Extract filename from path (e.g., "products/product_123.png" -> "product_123.png")
+                $filename = basename($product->gambar ?? '');
+                $apiImageUrl = $filename ? url('/api/images/products/' . $filename) : null;
+
+                return [
+                    'id_produk' => $product->id_produk,
+                    'nama_produk' => $product->nama_produk,
+                    'deskripsi' => $product->deskripsi,
+                    'harga' => $product->harga,
+                    'stok' => $product->stok,
+                    'gambar' => $product->gambar,
+                    'gambar_url' => $apiImageUrl, // Use API route with CORS
+                    'created_at' => $product->created_at,
+                    'updated_at' => $product->updated_at,
+                ];
+            });
+
             return response()->json([
-                'data' => Product::all()
+                'data' => $products
             ]);
         }
 
@@ -35,36 +53,36 @@ class ProductController extends Controller
         $reviews = $product->reviews
             ->sortByDesc('created_at')
             ->map(fn($r) => [
-                'id'       => $r->id,
-                'nama'     => $r->user->name ?? 'Pengguna',
-                'tanggal'  => $r->created_at?->format('j F Y'),
-                'rating'   => (int) $r->rating,
-                'isi'      => $r->body ?? $r->komentar ?? '',
+                'id' => $r->id,
+                'nama' => $r->user->name ?? 'Pengguna',
+                'tanggal' => $r->created_at?->format('j F Y'),
+                'rating' => (int) $r->rating,
+                'isi' => $r->body ?? $r->komentar ?? '',
             ])->values();
 
         // If it's an API request, return JSON
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'data' => [
-                    'id_produk'   => $product->id_produk,
+                    'id_produk' => $product->id_produk,
                     'nama_produk' => $product->nama_produk,
-                    'deskripsi'   => $product->deskripsi,
-                    'harga'       => (int) $product->harga,
-                    'stok'        => (int) $product->stok,
-                    'gambar'      => $product->gambar,
-                    'reviews'     => $reviews,
+                    'deskripsi' => $product->deskripsi,
+                    'harga' => (int) $product->harga,
+                    'stok' => (int) $product->stok,
+                    'gambar' => $product->gambar,
+                    'reviews' => $reviews,
                 ]
             ]);
         }
 
         return Inertia::render('User/ProductDetail', [
             'product' => [
-                'id_produk'   => $product->id_produk,
+                'id_produk' => $product->id_produk,
                 'nama_produk' => $product->nama_produk,
-                'deskripsi'   => $product->deskripsi,
-                'harga'       => (int) $product->harga,
-                'stok'        => (int) $product->stok,
-                'gambar'      => $product->gambar,
+                'deskripsi' => $product->deskripsi,
+                'harga' => (int) $product->harga,
+                'stok' => (int) $product->stok,
+                'gambar' => $product->gambar,
             ],
             'reviews' => $reviews,
         ]);
@@ -73,7 +91,7 @@ class ProductController extends Controller
     // Halaman Toko (User)
     public function shop()
     {
-        $products = Product::select('id_produk','nama_produk','deskripsi','harga','stok','kategori','gambar')
+        $products = Product::select('id_produk', 'nama_produk', 'deskripsi', 'harga', 'stok', 'kategori', 'gambar')
             ->latest()
             ->paginate(12)
             ->withQueryString();

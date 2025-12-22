@@ -18,6 +18,20 @@ Route::middleware(['web'])->group(function () {
     Route::get('/products/{id}', [\App\Http\Controllers\ProductController::class, 'show'])->name('api.products.show');
     Route::get('/news', [\App\Http\Controllers\NewsController::class, 'index'])->name('api.news.index');
     Route::get('/news/{id}', [\App\Http\Controllers\NewsController::class, 'show'])->name('api.news.show');
+
+    // Image proxy route with CORS headers
+    Route::get('/images/{type}/{filename}', function ($type, $filename) {
+        $path = storage_path('app/public/' . $type . '/' . $filename);
+
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        $file = file_get_contents($path);
+        $mimeType = mime_content_type($path);
+
+        return response($file, 200)->header('Content-Type', $mimeType);
+    })->where('type', 'products|news')->name('api.images.show');
 });
 
 // Protected Routes (Sanctum Token Required) - Also need web middleware for session
@@ -30,7 +44,7 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('api.profile.update');
 
     // RajaOngkir Shipping Cost API
-    Route::post('/rajaongkir/cost', function(\Illuminate\Http\Request $request) {
+    Route::post('/rajaongkir/cost', function (\Illuminate\Http\Request $request) {
         $validated = $request->validate([
             'origin' => 'nullable|integer',
             'destination' => 'required|integer',
@@ -67,19 +81,25 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
             return response()->json([
                 'rajaongkir' => [
                     'status' => ['code' => 200, 'description' => 'OK (Fallback)'],
-                    'results' => [[
-                        'code' => strtoupper($validated['courier']),
-                        'name' => strtoupper($validated['courier']),
-                        'costs' => [[
-                            'service' => 'REG',
-                            'description' => 'Regular (Estimasi)',
-                            'cost' => [[
-                                'value' => $fallbackCost,
-                                'etd' => '3-5',
-                                'note' => 'Estimasi ongkir otomatis'
-                            ]]
-                        ]]
-                    ]]
+                    'results' => [
+                        [
+                            'code' => strtoupper($validated['courier']),
+                            'name' => strtoupper($validated['courier']),
+                            'costs' => [
+                                [
+                                    'service' => 'REG',
+                                    'description' => 'Regular (Estimasi)',
+                                    'cost' => [
+                                        [
+                                            'value' => $fallbackCost,
+                                            'etd' => '3-5',
+                                            'note' => 'Estimasi ongkir otomatis'
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
                 ]
             ]);
         }
@@ -88,19 +108,25 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
         return response()->json([
             'rajaongkir' => [
                 'status' => ['code' => 200, 'description' => 'OK'],
-                'results' => [[
-                    'code' => $result['courier'],
-                    'name' => strtoupper($result['courier']),
-                    'costs' => [[
-                        'service' => $result['service'],
-                        'description' => $result['description'] ?? '',
-                        'cost' => [[
-                            'value' => $result['value'],
-                            'etd' => $result['etd'],
-                            'note' => ''
-                        ]]
-                    ]]
-                ]]
+                'results' => [
+                    [
+                        'code' => $result['courier'],
+                        'name' => strtoupper($result['courier']),
+                        'costs' => [
+                            [
+                                'service' => $result['service'],
+                                'description' => $result['description'] ?? '',
+                                'cost' => [
+                                    [
+                                        'value' => $result['value'],
+                                        'etd' => $result['etd'],
+                                        'note' => ''
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
             ]
         ]);
     })->name('api.rajaongkir.cost');
@@ -154,7 +180,7 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
         Route::delete('/admin/news/{news}', [\App\Http\Controllers\Admin\NewsController::class, 'destroy'])->name('api.admin.news.destroy');
 
         // Admin Dashboard Statistics
-        Route::get('/admin/dashboard/stats', function() {
+        Route::get('/admin/dashboard/stats', function () {
             return response()->json([
                 'total_products' => \App\Models\Product::count(),
                 'total_orders' => \App\Models\Order::count(),

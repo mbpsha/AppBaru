@@ -10,16 +10,38 @@ class NewsController extends Controller
 {
     public function index(Request $request)
     {
-        $news = News::orderBy('created_at', 'desc')->paginate(20);
+        $newsItems = News::orderBy('created_at', 'desc')->paginate(20);
 
         if ($request->expectsJson() || $request->is('api/*')) {
+            // Map news items to include image_url
+            $newsData = $newsItems->getCollection()->map(function ($news) {
+                // Extract filename from path (e.g., "news/news_123.png" -> "news_123.png")
+                $filename = basename($news->image ?? '');
+                $apiImageUrl = $filename ? url('/api/images/news/' . $filename) : null;
+
+                return [
+                    'id' => $news->id,
+                    'id_berita' => $news->id, // For backward compatibility
+                    'title' => $news->title,
+                    'judul' => $news->title, // For backward compatibility
+                    'excerpt' => $news->excerpt,
+                    'content' => $news->content,
+                    'image' => $news->image,
+                    'image_url' => $apiImageUrl, // Use API route with CORS
+                    'is_published' => $news->is_published,
+                    'status' => $news->is_published ? 'Published' : 'Draft',
+                    'created_at' => $news->created_at,
+                    'updated_at' => $news->updated_at,
+                ];
+            });
+
             return response()->json([
-                'data' => $news
+                'data' => $newsData
             ]);
         }
 
         return inertia('Admin/News/Index', [
-            'news' => $news
+            'news' => $newsItems
         ]);
     }
 
